@@ -1,0 +1,54 @@
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade, name text not null, email text not null, avatar text, role text not null default 'citizen' check (role in ('citizen','organization','admin')), phone text, district text, created_at timestamptz not null default now(), bio text, is_verified boolean not null default false, is_blocked boolean not null default false);
+create table if not exists public.organizations (id uuid primary key default gen_random_uuid(), name text not null, logo text, description text not null default '', phone text not null default '', email text not null default '', website text, verified boolean not null default false, district text, joined_at timestamptz not null default now());
+create table if not exists public.categories (id text primary key, name text not null, name_en text not null, icon text not null default '', color text not null default '', bg_color text not null default '', organization_id uuid references public.organizations(id) on delete set null);
+create table if not exists public.reports (id uuid primary key default gen_random_uuid(), title text not null, description text not null, category_id text not null references public.categories(id), status text not null default 'new' check (status in ('new','review','accepted','inprogress','completed','rejected','ignored')), lat double precision not null, lng double precision not null, address text not null default '', district text, photos text[] not null default '{}', videos text[] not null default '{}', author_id uuid references public.profiles(id) on delete set null, anonymous boolean not null default false, organization_id uuid references public.organizations(id) on delete set null, priority text not null default 'medium' check (priority in ('low','medium','high','urgent')), solved_by text, completion_description text, completion_photos text[] not null default '{}', completion_date timestamptz, view_count integer not null default 0, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.report_votes (report_id uuid not null references public.reports(id) on delete cascade, user_id uuid not null references public.profiles(id) on delete cascade, created_at timestamptz not null default now(), primary key (report_id,user_id));
+create table if not exists public.comments (id uuid primary key default gen_random_uuid(), report_id uuid not null references public.reports(id) on delete cascade, author_id uuid references public.profiles(id) on delete set null, text text not null, images text[] not null default '{}', parent_id uuid references public.comments(id) on delete cascade, created_at timestamptz not null default now());
+create table if not exists public.comment_likes (comment_id uuid not null references public.comments(id) on delete cascade, user_id uuid not null references public.profiles(id) on delete cascade, created_at timestamptz not null default now(), primary key (comment_id,user_id));
+create table if not exists public.report_timeline (id uuid primary key default gen_random_uuid(), report_id uuid not null references public.reports(id) on delete cascade, status text not null, note text not null default '', author_id uuid references public.profiles(id) on delete set null, created_at timestamptz not null default now());
+create table if not exists public.citizen_resolutions (id uuid primary key default gen_random_uuid(), report_id uuid not null references public.reports(id) on delete cascade, solver_id uuid references public.profiles(id) on delete set null, description text not null, photos text[] not null default '{}', status text not null default 'pending' check (status in ('pending','approved','rejected')), created_at timestamptz not null default now());
+create table if not exists public.resolution_votes (resolution_id uuid not null references public.citizen_resolutions(id) on delete cascade, user_id uuid not null references public.profiles(id) on delete cascade, vote text not null check (vote in ('confirm','deny')), created_at timestamptz not null default now(), primary key (resolution_id,user_id));
+create table if not exists public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid not null references public.profiles(id) on delete cascade, type text not null, title text not null, message text not null, report_id uuid references public.reports(id) on delete cascade, read boolean not null default false, created_at timestamptz not null default now());
+create table if not exists public.announcements (id uuid primary key default gen_random_uuid(), organization_id uuid references public.organizations(id) on delete set null, type text not null, title text not null, description text not null default '', route jsonb not null default '[]'::jsonb, alternative_route jsonb, alternative_description text, start_date timestamptz not null, end_date timestamptz, status text not null default 'planned' check (status in ('active','planned','expired')), created_at timestamptz not null default now());
+create table if not exists public.business_sponsors (id uuid primary key default gen_random_uuid(), report_id uuid not null references public.reports(id) on delete cascade, user_id uuid references public.profiles(id) on delete set null, business_name text not null, business_description text, website text, contact_email text, contact_phone text, pledge_message text not null default '', sponsor_type text not null check (sponsor_type in ('full','partial','material')), status text not null default 'pledged' check (status in ('pledged','in_progress','completed','cancelled')), pledged_at timestamptz not null default now(), completed_at timestamptz);
+
+create index if not exists reports_status_idx on public.reports(status);
+create index if not exists reports_category_idx on public.reports(category_id);
+create index if not exists reports_org_idx on public.reports(organization_id);
+create index if not exists reports_author_idx on public.reports(author_id);
+create index if not exists comments_report_idx on public.comments(report_id);
+create index if not exists notifications_user_idx on public.notifications(user_id,read);
+
+alter table public.profiles enable row level security;
+alter table public.organizations enable row level security;
+alter table public.categories enable row level security;
+alter table public.reports enable row level security;
+alter table public.report_votes enable row level security;
+alter table public.comments enable row level security;
+alter table public.comment_likes enable row level security;
+alter table public.report_timeline enable row level security;
+alter table public.citizen_resolutions enable row level security;
+alter table public.resolution_votes enable row level security;
+alter table public.notifications enable row level security;
+alter table public.announcements enable row level security;
+alter table public.business_sponsors enable row level security;
+
+create policy "public read organizations" on public.organizations for select using (true);
+create policy "public read categories" on public.categories for select using (true);
+create policy "public read reports" on public.reports for select using (true);
+create policy "public read comments" on public.comments for select using (true);
+create policy "public read timeline" on public.report_timeline for select using (true);
+create policy "public read announcements" on public.announcements for select using (true);
+create policy "public read sponsors" on public.business_sponsors for select using (true);
+create policy "authenticated create reports" on public.reports for insert to authenticated with check (author_id = auth.uid());
+create policy "authenticated vote reports" on public.report_votes for insert to authenticated with check (user_id = auth.uid());
+create policy "authenticated delete own votes" on public.report_votes for delete to authenticated using (user_id = auth.uid());
+create policy "authenticated create comments" on public.comments for insert to authenticated with check (author_id = auth.uid());
+create policy "authenticated create resolution" on public.citizen_resolutions for insert to authenticated with check (solver_id = auth.uid());
+create policy "authenticated resolution votes" on public.resolution_votes for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "users read own profile" on public.profiles for select to authenticated using (id = auth.uid());
+create policy "users update own profile" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+create policy "users read own notifications" on public.notifications for select to authenticated using (user_id = auth.uid());
+create policy "users update own notifications" on public.notifications for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
