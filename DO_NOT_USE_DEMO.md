@@ -1,0 +1,1 @@
+Production rule: do not use demo/mock authentication or local-only persistence for user-facing functionality.
