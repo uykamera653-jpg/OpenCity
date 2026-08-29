@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 export type AIReportSuggestion = {
-  categoryId?: string;
+  categoryId?: string | null;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   title?: string;
   description?: string;
@@ -17,12 +17,7 @@ export async function analyzeReportWithAI(input: {
   longitude?: number;
   imageUrls?: string[];
 }): Promise<AIReportSuggestion | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke('opencity-ai', { body: input });
-    if (error) throw error;
-    return data?.suggestion ?? null;
-  } catch (error) {
-    console.warn('OpenCity AI is unavailable:', error);
-    return null;
-  }
+  const { data, error } = await supabase.functions.invoke('opencity-ai', { body: input });
+  if (error) throw error;
+  return data?.suggestion ?? null;
 }
