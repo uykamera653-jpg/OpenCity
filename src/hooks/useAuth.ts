@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 // OnSpace can expose the app through an internal localhost:3000 origin;
 // using window.location.origin would therefore send Google OAuth back to
 // localhost, which is unreachable from the user's device.
-const AUTH_REDIRECT_URL = 'https://o2.onspace.build';
+const AUTH_REDIRECT_URL = 'https://02.onspace.build';
 
 async function profileToUser(profile: any, fallbackEmail = ''): Promise<User> {
   return {
