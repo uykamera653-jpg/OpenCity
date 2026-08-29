@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Header from '@/components/layout/Header';
 import AuthModal from '@/components/features/auth/AuthModal';
+import SupabaseBootstrap from '@/components/system/SupabaseBootstrap';
 import HomePage from '@/pages/HomePage';
 import ReportsPage from '@/pages/ReportsPage';
 import CreateReportPage from '@/pages/CreateReportPage';
@@ -16,6 +17,7 @@ import NotFound from '@/pages/NotFound';
 export default function App() {
   return (
     <BrowserRouter>
+      <SupabaseBootstrap />
       <Header />
       <AuthModal />
       <Toaster position="top-right" richColors />
