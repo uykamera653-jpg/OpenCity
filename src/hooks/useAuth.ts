@@ -24,63 +24,140 @@ async function profileToUser(profile: any, fallbackEmail = ''): Promise<User> {
 export function useAuth() {
   const { currentUser, login, logout, openAuthModal, isAuthModalOpen, closeAuthModal, authModalTab } = useAppStore();
 
-  const loadProfile = useCallback(async (userId: string, email = '') => {
+  const loadProfile = useCallback(async (userId: string, email = '', name = '') => {
     if (!supabase) return null;
-    let { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (!profile) {
-      const { data: created } = await supabase.from('profiles').insert({
+
+    const { data: profile, error: readError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (readError) throw readError;
+    if (profile) return profileToUser(profile, email);
+
+    // A profile can only be created after Supabase has an authenticated session.
+    // This also prevents the signup flow from failing when email confirmation is enabled.
+    const { data: created, error: createError } = await supabase
+      .from('profiles')
+      .insert({
         id: userId,
         email,
-        name: email.split('@')[0] || 'Foydalanuvchi',
+        name: name || email.split('@')[0] || 'Foydalanuvchi',
         role: 'citizen',
-      }).select('*').single();
-      profile = created;
-    }
-    if (!profile) return null;
-    return profileToUser(profile, email);
+      })
+      .select('*')
+      .single();
+
+    if (createError) throw createError;
+    return created ? profileToUser(created, email) : null;
   }, []);
 
   useEffect(() => {
     if (!supabase) return;
     let mounted = true;
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted || !session?.user) return;
-      const user = await loadProfile(session.user.id, session.user.email || '');
-      if (mounted && user) login(user);
-    });
+
+    const restoreSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted || !session?.user) return;
+        const user = await loadProfile(
+          session.user.id,
+          session.user.email || '',
+          session.user.user_metadata?.name || ''
+        );
+        if (mounted && user) login(user);
+      } catch {
+        // Do not break the application if profile restoration temporarily fails.
+      }
+    };
+
+    void restoreSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
-      if (!session?.user) { logout(); return; }
-      const user = await loadProfile(session.user.id, session.user.email || '');
-      if (mounted && user) login(user);
+      if (!session?.user) {
+        logout();
+        return;
+      }
+
+      try {
+        const user = await loadProfile(
+          session.user.id,
+          session.user.email || '',
+          session.user.user_metadata?.name || ''
+        );
+        if (mounted && user) login(user);
+      } catch {
+        // Keep auth state alive even if the profile table is temporarily unavailable.
+      }
     });
-    return () => { mounted = false; listener.subscription.unsubscribe(); };
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, [login, logout, loadProfile]);
 
   const loginWithEmail = async (email: string, password: string) => {
     if (!supabase) throw new Error('Supabase sozlanmagan. VITE_SUPABASE_PUBLISHABLE_KEY ni kiriting.');
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     if (!data.user) throw new Error('Kirish amalga oshmadi');
-    const user = await loadProfile(data.user.id, data.user.email || email);
+
+    const user = await loadProfile(
+      data.user.id,
+      data.user.email || email,
+      data.user.user_metadata?.name || ''
+    );
     if (!user) throw new Error('Profil yaratilmadi');
     if (user.isBlocked) throw new Error('Hisobingiz bloklangan.');
+
     login(user);
     return user;
   };
 
   const registerWithEmail = async (email: string, password: string, name: string) => {
     if (!supabase) throw new Error('Supabase sozlanmagan.');
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+
     if (error) throw error;
     if (!data.user) throw new Error('Ro‘yxatdan o‘tish amalga oshmadi');
-    const { data: profile, error: profileError } = await supabase.from('profiles').upsert({
-      id: data.user.id, name, email, role: 'citizen',
-    }).select('*').single();
-    if (profileError) throw profileError;
-    const user = await profileToUser(profile, email);
-    if (data.session) login(user);
+
+    // With email confirmation enabled, data.session is null. In that case,
+    // do NOT write to public.profiles yet because there is no authenticated JWT.
+    if (!data.session) {
+      return {
+        id: data.user.id,
+        name,
+        email,
+        avatar: undefined,
+        role: 'citizen' as const,
+        phone: undefined,
+        district: undefined,
+        createdAt: new Date().toISOString(),
+        reportsCount: 0,
+        votesCount: 0,
+        isVerified: false,
+        isBlocked: false,
+        bio: undefined,
+      } satisfies User;
+    }
+
+    const user = await loadProfile(data.user.id, email, name);
+    if (!user) throw new Error('Profil yaratilmadi');
+    if (user.isBlocked) throw new Error('Hisobingiz bloklangan.');
+
+    login(user);
     return user;
   };
 
