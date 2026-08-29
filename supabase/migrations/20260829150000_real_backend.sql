@@ -1,0 +1,2 @@
+-- OpenCity real backend migration
+-- Placeholder migration scaffold. Schema changes should be applied after auditing existing tables.
