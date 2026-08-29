@@ -1,13 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://uajwbvenibpuvjrrrabt.supabase.co';
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl || !supabasePublishableKey) {
-  console.warn('OpenCity Supabase environment variables are not configured.');
-}
+export const isSupabaseConfigured = Boolean(supabasePublishableKey);
 
-export const supabase = createClient(
-  supabaseUrl ?? 'https://uajwbvenibpuvjrrrabt.supabase.co',
-  supabasePublishableKey ?? '',
-);
+export const supabase: SupabaseClient | null = supabasePublishableKey
+  ? createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
+
+export const SUPABASE_URL = supabaseUrl;
