@@ -1,0 +1,1 @@
+OpenCity is being connected to Supabase for production persistence. Demo-only actions must not be used as production behavior.
