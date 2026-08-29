@@ -3,6 +3,12 @@ import { useAppStore } from '@/stores/appStore';
 import { User } from '@/types';
 import { supabase } from '@/lib/supabase';
 
+// Use the public OpenCity URL for OAuth callbacks.
+// OnSpace can expose the app through an internal localhost:3000 origin;
+// using window.location.origin would therefore send Google OAuth back to
+// localhost, which is unreachable from the user's device.
+const AUTH_REDIRECT_URL = 'https://o2.onspace.build';
+
 async function profileToUser(profile: any, fallbackEmail = ''): Promise<User> {
   return {
     id: profile.id,
@@ -126,7 +132,7 @@ export function useAuth() {
       password,
       options: {
         data: { name },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: AUTH_REDIRECT_URL,
       },
     });
 
@@ -165,7 +171,7 @@ export function useAuth() {
     if (!supabase) throw new Error('Supabase sozlanmagan.');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: AUTH_REDIRECT_URL },
     });
     if (error) throw error;
   };
