@@ -1,0 +1,1 @@
+Use the existing Supabase client for production data access.
