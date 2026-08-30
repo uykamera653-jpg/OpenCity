@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 // OAuth must return to the real hosted OpenCity app, not localhost or the old
 // OnSpace 02 domain.
-const AUTH_REDIRECT_URL = 'https://react-9bu602.onspace.build';
+const AUTH_REDIRECT_URL = window.location.origin;
 
 async function profileToUser(profile: any, fallbackEmail = ''): Promise<User> {
   return {
