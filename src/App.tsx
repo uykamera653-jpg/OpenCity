@@ -10,6 +10,7 @@ import ReportDetailPage from '@/pages/ReportDetailPage';
 import DashboardPage from '@/pages/DashboardPage';
 import OrganizationsPage from '@/pages/OrganizationsPage';
 import OrganizationDetailPage from '@/pages/OrganizationDetailPage';
+import OrganizationDashboardPage from '@/pages/OrganizationDashboardPage';
 import AdminPage from '@/pages/AdminPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFound from '@/pages/NotFound';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/reports/new" element={<CreateReportPage />} />
           <Route path="/reports/:id" element={<ReportDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/organization-dashboard" element={<OrganizationDashboardPage />} />
           <Route path="/organizations" element={<OrganizationsPage />} />
           <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
           <Route path="/admin" element={<AdminPage />} />
