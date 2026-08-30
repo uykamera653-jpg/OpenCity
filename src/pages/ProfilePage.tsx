@@ -13,7 +13,7 @@ export default function ProfilePage() {
 
   if (!isAuthenticated || !currentUser) {
     return (
-      <div className="min-h-screen pt-16 flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50">
         <div className="text-center bg-white rounded-2xl shadow-glass p-10 max-w-sm w-full mx-4">
           <div className="text-5xl mb-4">👤</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Profilingizga kiring</h2>
@@ -31,7 +31,7 @@ export default function ProfilePage() {
   const roleColors = { admin: 'bg-red-100 text-red-700', organization: 'bg-blue-100 text-[#2563EB]', citizen: 'bg-green-100 text-green-700' };
 
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
+    <div className="min-h-screen pt-24 bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Orqaga

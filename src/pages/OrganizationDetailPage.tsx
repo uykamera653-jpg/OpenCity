@@ -36,7 +36,7 @@ export default function OrganizationDetailPage() {
 
   if (!org) {
     return (
-      <div className="min-h-screen pt-16 flex items-center justify-center">
+      <div className="min-h-screen pt-24 flex items-center justify-center">
         <div className="text-center">
           <p className="text-5xl mb-4">🏢</p>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Tashkilot topilmadi</h2>
@@ -65,7 +65,7 @@ export default function OrganizationDetailPage() {
   };
 
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
+    <div className="min-h-screen pt-24 bg-gray-50">
 
       {/* ── ORG HEADER ── */}
       <div className="bg-white border-b border-gray-100">

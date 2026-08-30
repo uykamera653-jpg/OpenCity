@@ -43,7 +43,7 @@ export default function ReportDetailPage() {
 
   if (!report) {
     return (
-      <div className="min-h-screen pt-16 flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-5xl mb-4">😕</p>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Muammo topilmadi</h2>
@@ -98,7 +98,7 @@ export default function ReportDetailPage() {
   const canSubmitResolution = isAuthenticated && !isCompleted && !alreadySubmitted && currentUser?.role !== 'admin';
 
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
+    <div className="min-h-screen pt-24 bg-gray-50">
 
       {/* ── COMPLETED BANNER ── */}
       {isCompleted && (

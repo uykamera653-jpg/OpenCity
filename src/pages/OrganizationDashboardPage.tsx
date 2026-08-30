@@ -31,7 +31,7 @@ export default function OrganizationDashboardPage() {
   if (!isAuthenticated) return <Gate title="Tashkilot kabineti" text="Avval tizimga kiring." action={() => navigate('/')} />;
   if (!isOrganization) return <Gate title="Ruxsat yo'q" text="Bu bo'lim faqat tasdiqlangan tashkilot xodimlari uchun." action={() => navigate('/')} />;
   if (loading) return (
-    <div className="min-h-screen pt-16 flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50">
       <RefreshCw className="w-7 h-7 text-[#2563EB] animate-spin" />
     </div>
   );
@@ -51,7 +51,7 @@ export default function OrganizationDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
+    <div className="min-h-screen pt-24 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Header card */}
@@ -139,7 +139,7 @@ export default function OrganizationDashboardPage() {
 
 function Gate({ title, text, action }: { title: string; text: string; action: () => void }) {
   return (
-    <div className="min-h-screen pt-16 flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white rounded-2xl shadow-glass border border-gray-100 p-8 text-center max-w-md w-full">
         <Building2 className="w-10 h-10 text-[#2563EB] mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-900">{title}</h1>

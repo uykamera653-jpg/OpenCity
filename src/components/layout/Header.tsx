@@ -3,8 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Bell, Plus, Menu, X, MapPin, LayoutDashboard, Building2, ClipboardList, Settings, LogOut, User, ChevronDown, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/stores/appStore';
-import { getInitials, getAvatarUrl } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { getInitials, getAvatarUrl, cn } from '@/lib/utils';
+
+// Test mode banner — remove when real organizations are onboarded
+const TEST_MODE = true;
 
 export default function Header() {
   const { currentUser, isAuthenticated, isAdmin, logout, openAuthModal } = useAuth();
@@ -26,7 +28,14 @@ export default function Header() {
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+    <>
+    {TEST_MODE && (
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-400 text-amber-900 text-center text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-2">
+        <span className="inline-block w-2 h-2 rounded-full bg-amber-700 animate-pulse flex-shrink-0" />
+        🧪 TEST REJIMI — Sayt sinov holatida. Tashkilotlar hali ulangani yo'q. Ma'lumotlar test bazasida saqlanadi.
+      </div>
+    )}
+    <header className={cn('fixed left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm', TEST_MODE ? 'top-8' : 'top-0')}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
@@ -163,5 +172,6 @@ export default function Header() {
         <div className="fixed inset-0 z-40" onClick={() => { setNotifOpen(false); setUserMenuOpen(false); }} />
       )}
     </header>
+    </>
   );
 }

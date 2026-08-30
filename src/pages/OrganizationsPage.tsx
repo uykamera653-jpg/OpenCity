@@ -23,7 +23,7 @@ export default function OrganizationsPage() {
   const getOrgReportCount = (orgId: string) => reports.filter(r => r.organizationId === orgId).length;
 
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
+    <div className="min-h-screen pt-24 bg-gray-50">
       {/* Hero */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

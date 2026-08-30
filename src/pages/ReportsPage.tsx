@@ -39,9 +39,9 @@ export default function ReportsPage() {
   const activeFilters = [categoryFilter !== 'all' ? 1 : 0, statusFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50 pt-24">
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
+      <div className="bg-white border-b border-gray-100 sticky top-24 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
           <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

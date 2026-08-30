@@ -72,7 +72,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ top: 64 }}>
+    <div className="fixed inset-0 flex flex-col" style={{ top: 96 }}>
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="md:hidden flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100 z-20 flex-shrink-0">
