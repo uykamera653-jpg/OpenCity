@@ -53,6 +53,8 @@ export default function HomePage() {
   const statuses: (ReportStatus | 'all')[] = ['all', 'new', 'review', 'inprogress', 'completed', 'rejected'];
 
   const isOrgOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'organization';
+  const [mapCenter, setMapCenter] = useState<[number,number]>([41.2995, 69.2401]);
+  const handleAutoLocated = (lat: number, lng: number) => setMapCenter([lat, lng]);
 
   const handleMarkerClick = (report: Report) => {
     setSelectedReport(report);
@@ -251,10 +253,13 @@ export default function HomePage() {
             reports={filteredReports}
             announcements={activeAnnouncements}
             height="100%"
+            center={mapCenter}
             selectedId={selectedReport?.id}
             selectedAnnouncementId={selectedAnnouncement?.id}
             onMarkerClick={handleMarkerClick}
             onAnnouncementClick={handleAnnouncementClick}
+            autoLocate
+            onAutoLocated={handleAutoLocated}
           />
         </div>
 

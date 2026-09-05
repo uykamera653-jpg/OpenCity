@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useAppStore } from '@/stores/appStore';
 import { User } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -25,6 +25,21 @@ async function profileToUser(profile: any, fallbackEmail = ''): Promise<User> {
   };
 }
 
+// Global loading state so pages can show a spinner while session is restoring
+let _sessionLoading = true;
+const _listeners = new Set<()=>void>();
+export function _notifySessionReady() { _sessionLoading = false; _listeners.forEach(fn => fn()); }
+export function useSessionLoading() {
+  const [loading, setLoading] = useState(_sessionLoading);
+  useEffect(() => {
+    if (!_sessionLoading) return;
+    const fn = () => setLoading(false);
+    _listeners.add(fn);
+    return () => { _listeners.delete(fn); };
+  }, []);
+  return loading;
+}
+
 export function useAuth() {
   const { currentUser, login, logout, openAuthModal, isAuthModalOpen, closeAuthModal, authModalTab } = useAppStore();
 
@@ -44,19 +59,23 @@ export function useAuth() {
     const restoreSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted || !session?.user) return;
-        const user = await loadProfile(session.user.id, session.user.email || '', session.user.user_metadata?.name || '');
-        if (mounted && user) login(user);
+        if (!mounted) return;
+        if (session?.user) {
+          const user = await loadProfile(session.user.id, session.user.email || '', session.user.user_metadata?.full_name || session.user.user_metadata?.name || '');
+          if (mounted && user) login(user);
+        }
       } catch {}
+      finally { _notifySessionReady(); }
     };
     void restoreSession();
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
-      if (!session?.user) { logout(); return; }
+      if (!session?.user) { logout(); _notifySessionReady(); return; }
       try {
-        const user = await loadProfile(session.user.id, session.user.email || '', session.user.user_metadata?.name || '');
+        const user = await loadProfile(session.user.id, session.user.email || '', session.user.user_metadata?.full_name || session.user.user_metadata?.name || '');
         if (mounted && user) login(user);
       } catch {}
+      finally { _notifySessionReady(); }
     });
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, [login, logout, loadProfile]);

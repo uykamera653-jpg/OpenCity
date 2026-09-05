@@ -1,15 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, ClipboardList, ThumbsUp, Mail, Phone, LogOut, Edit3, Shield, Building2 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, useSessionLoading } from '@/hooks/useAuth';
 import { useAppStore } from '@/stores/appStore';
 import { getInitials, formatDate } from '@/lib/utils';
 import ReportCard from '@/components/features/reports/ReportCard';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { currentUser, isAuthenticated, logout, openAuthModal } = useAuth();
+  const sessionLoading = useSessionLoading();
   const { reports } = useAppStore();
   const navigate = useNavigate();
+
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !currentUser) {
     return (

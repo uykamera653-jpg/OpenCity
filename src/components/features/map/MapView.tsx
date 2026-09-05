@@ -1,15 +1,156 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { LocateFixed, Loader2 } from 'lucide-react';
 import { Report, ReportStatus, MapAnnouncement } from '@/types';
 import { ANNOUNCEMENT_TYPE_CONFIG } from '@/constants/categories';
 import { toast } from 'sonner';
+
 const STATUS_COLORS: Record<ReportStatus,string>={new:'#DC2626',review:'#EA580C',accepted:'#CA8A04',inprogress:'#2563EB',completed:'#16A34A',rejected:'#6B7280',ignored:'#374151'};
-function createMarkerIcon(status:ReportStatus,votes:number,selected:boolean){const color=STATUS_COLORS[status];const size=selected?34:Math.min(28,20+Math.floor(votes/30));return L.divIcon({className:'',html:`<div style="position:relative;width:${size}px;height:${size}px"><div style="width:${size}px;height:${size}px;background:${color};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:${selected?'4px solid #1D4ED8':'3px solid white'};box-shadow:0 3px 10px rgba(0,0,0,.25)"></div></div>`,iconSize:[size,size],iconAnchor:[size/2,size]});}
-function createAnnouncementIcon(type:string){const c=ANNOUNCEMENT_TYPE_CONFIG[type]||ANNOUNCEMENT_TYPE_CONFIG.other;return L.divIcon({className:'',html:`<div style="background:${c.color};color:white;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25);border:2px solid white">${c.icon} ${c.label}</div>`,iconSize:[0,0],iconAnchor:[0,0]});}
-function SetViewOnChange({center,zoom}:{center:[number,number];zoom:number}){const map=useMap();useEffect(()=>{map.setView(center,zoom);},[center,zoom,map]);return null;}
-function MapClickHandler({onMapClick}:{onMapClick?:(lat:number,lng:number)=>void}){useMapEvents({click:e=>onMapClick?.(e.latlng.lat,e.latlng.lng)});return null;}
-function UserLocationControl({onLocation}:{onLocation?:(lat:number,lng:number)=>void}){const map=useMap();const[locating,setLocating]=useState(false);const[position,setPosition]=useState<[number,number]|null>(null);const[accuracy,setAccuracy]=useState<number|null>(null);const locate=useCallback(()=>{if(!window.isSecureContext){toast.error('Joylashuv uchun sayt HTTPS orqali ochilishi kerak.');return;}if(!navigator.geolocation){toast.error('Joylashuv aniqlash qo‘llab-quvvatlanmaydi.');return;}setLocating(true);navigator.geolocation.getCurrentPosition(({coords})=>{const p:[number,number]=[coords.latitude,coords.longitude];setPosition(p);setAccuracy(coords.accuracy);onLocation?.(...p);map.flyTo(p,17,{duration:.8});setLocating(false);toast.success('Joylashuvingiz aniqlandi.');},e=>{setLocating(false);toast.error(e.code===1?'Location ruxsatini bering.':e.code===2?'Telefon GPS/Location xizmatini yoqing.':'Joylashuvni aniqlash vaqti tugadi.');},{enableHighAccuracy:true,timeout:20000,maximumAge:5000});},[map,onLocation]);const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#2563EB;border:4px solid white;box-shadow:0 2px 12px rgba(0,0,0,.28)"></div>',iconSize:[22,22],iconAnchor:[11,11]});return <><button type="button" onClick={locate} disabled={locating} aria-label="Mening joylashuvim" className="map-location-control absolute right-4 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-lg">{locating?<Loader2 className="h-5 w-5 animate-spin text-blue-600"/>:<LocateFixed className="h-5 w-5"/>}</button>{position&&<Marker position={position} icon={icon} interactive={false}/>} {position&&accuracy&&accuracy<1000&&<Circle center={position} radius={Math.min(Math.max(accuracy,20),500)} pathOptions={{color:'#2563EB',weight:1,opacity:.3,fillColor:'#2563EB',fillOpacity:.08}}/>}</>;}
-interface Props{reports:Report[];announcements?:MapAnnouncement[];center?:[number,number];zoom?:number;height?:string;selectedId?:string;selectedAnnouncementId?:string;onMarkerClick?:(r:Report)=>void;onAnnouncementClick?:(a:MapAnnouncement)=>void;onMapClick?:(lat:number,lng:number)=>void;selectedLocation?:[number,number]|null;}
-export default function MapView({reports,announcements=[],center=[41.2995,69.2401],zoom=12,height='100%',selectedId,selectedAnnouncementId,onMarkerClick,onAnnouncementClick,onMapClick,selectedLocation=null}:Props){const selectedIcon=L.divIcon({className:'',html:'<div style="width:20px;height:20px;border-radius:50%;background:#2563EB;border:4px solid white;box-shadow:0 0 0 5px rgba(37,99,235,.25),0 3px 12px rgba(0,0,0,.3)"></div>',iconSize:[20,20],iconAnchor:[10,10]});return <div className="relative h-full w-full overflow-hidden" style={{height}}><MapContainer center={center} zoom={zoom} style={{height:'100%',width:'100%'}} zoomControl className="z-0"><TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'/><SetViewOnChange center={center} zoom={zoom}/><UserLocationControl onLocation={onMapClick}/>{onMapClick&&<MapClickHandler onMapClick={onMapClick}/>} {selectedLocation&&<Marker position={selectedLocation} icon={selectedIcon} interactive={false}/>} {reports.map(r=><Marker key={r.id} position={[r.location.lat,r.location.lng]} icon={createMarkerIcon(r.status,r.votes,r.id===selectedId)} eventHandlers={{click:()=>onMarkerClick?.(r)}}/>)} {announcements.map(a=>{const c=ANNOUNCEMENT_TYPE_CONFIG[a.type]||ANNOUNCEMENT_TYPE_CONFIG.other;const sel=a.id===selectedAnnouncementId;return <div key={a.id}>{a.route.length>=2&&<Polyline positions={a.route} pathOptions={{color:c.lineColor,weight:sel?8:5,opacity:a.status==='expired'?.3:.85}} eventHandlers={{click:()=>onAnnouncementClick?.(a)}}/>}{a.alternativeRoute&&a.alternativeRoute.length>=2&&<Polyline positions={a.alternativeRoute} pathOptions={{color:'#16A34A',weight:4,dashArray:'12,5'}}/>}{a.route.length>=1&&<Marker position={a.route[Math.floor(a.route.length/2)]} icon={createAnnouncementIcon(a.type)} eventHandlers={{click:()=>onAnnouncementClick?.(a)}}/>}</div>})}</MapContainer></div>}
+
+function createMarkerIcon(status:ReportStatus,votes:number,selected:boolean){
+  const color=STATUS_COLORS[status];
+  const size=selected?34:Math.min(28,20+Math.floor(votes/30));
+  return L.divIcon({className:'',html:`<div style="position:relative;width:${size}px;height:${size}px"><div style="width:${size}px;height:${size}px;background:${color};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:${selected?'4px solid #1D4ED8':'3px solid white'};box-shadow:0 3px 10px rgba(0,0,0,.25)"></div></div>`,iconSize:[size,size],iconAnchor:[size/2,size]});
+}
+
+function createAnnouncementIcon(type:string){
+  const c=ANNOUNCEMENT_TYPE_CONFIG[type]||ANNOUNCEMENT_TYPE_CONFIG.other;
+  return L.divIcon({className:'',html:`<div style="background:${c.color};color:white;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25);border:2px solid white">${c.icon} ${c.label}</div>`,iconSize:[0,0],iconAnchor:[0,0]});
+}
+
+// Only flies to center when followCenter=true (used in CreateReportPage after GPS pick)
+function SetViewOnChange({center,zoom,followCenter}:{center:[number,number];zoom:number;followCenter?:boolean}){
+  const map=useMap();
+  const prevCenter=useRef<[number,number]|null>(null);
+  useEffect(()=>{
+    if(!followCenter)return;
+    const [lat,lng]=center;
+    const prev=prevCenter.current;
+    if(!prev||Math.abs(prev[0]-lat)>0.0001||Math.abs(prev[1]-lng)>0.0001){
+      map.flyTo(center,zoom,{duration:0.6});
+      prevCenter.current=center;
+    }
+  },[center,zoom,map,followCenter]);
+  return null;
+}
+
+function MapClickHandler({onMapClick}:{onMapClick?:(lat:number,lng:number)=>void}){
+  useMapEvents({click:e=>onMapClick?.(e.latlng.lat,e.latlng.lng)});
+  return null;
+}
+
+// Auto-locate on first load of the main map
+function AutoLocate({onLocation}:{onLocation?:(lat:number,lng:number)=>void}){
+  const map=useMap();
+  useEffect(()=>{
+    if(!onLocation||!navigator.geolocation)return;
+    navigator.geolocation.getCurrentPosition(
+      ({coords})=>{
+        const p:[number,number]=[coords.latitude,coords.longitude];
+        onLocation(p[0],p[1]);
+        map.flyTo(p,13,{duration:1});
+      },
+      ()=>{}, // silently ignore — stay on default center
+      {enableHighAccuracy:false,timeout:8000,maximumAge:120000}
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  return null;
+}
+
+function UserLocationControl({onLocation}:{onLocation?:(lat:number,lng:number)=>void}){
+  const map=useMap();
+  const[locating,setLocating]=useState(false);
+  const[position,setPosition]=useState<[number,number]|null>(null);
+  const[accuracy,setAccuracy]=useState<number|null>(null);
+
+  const locate=useCallback(()=>{
+    if(!navigator.geolocation){toast.error("Joylashuv aniqlash qo'llab-quvvatlanmaydi.");return;}
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({coords})=>{
+        const p:[number,number]=[coords.latitude,coords.longitude];
+        setPosition(p);setAccuracy(coords.accuracy);
+        onLocation?.(...p);
+        map.flyTo(p,17,{duration:.8});
+        setLocating(false);
+        toast.success('Joylashuvingiz aniqlandi.');
+      },
+      e=>{
+        setLocating(false);
+        toast.error(e.code===1?'Joylashuv ruxsatini bering.':e.code===2?'GPS signali topilmadi.':'Joylashuvni aniqlash vaqti tugadi.');
+      },
+      {enableHighAccuracy:true,timeout:20000,maximumAge:5000}
+    );
+  },[map,onLocation]);
+
+  const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#2563EB;border:4px solid white;box-shadow:0 2px 12px rgba(0,0,0,.28)"></div>',iconSize:[22,22],iconAnchor:[11,11]});
+
+  return(
+    <>
+      <button type="button" onClick={locate} disabled={locating} aria-label="Mening joylashuvim"
+        className="map-location-control absolute right-4 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white shadow-lg">
+        {locating?<Loader2 className="h-5 w-5 animate-spin text-blue-600"/>:<LocateFixed className="h-5 w-5"/>}
+      </button>
+      {position&&<Marker position={position} icon={icon} interactive={false}/>}
+      {position&&accuracy&&accuracy<1000&&<Circle center={position} radius={Math.min(Math.max(accuracy,20),500)} pathOptions={{color:'#2563EB',weight:1,opacity:.3,fillColor:'#2563EB',fillOpacity:.08}}/>}
+    </>
+  );
+}
+
+interface Props{
+  reports:Report[];
+  announcements?:MapAnnouncement[];
+  center?:[number,number];
+  zoom?:number;
+  height?:string;
+  selectedId?:string;
+  selectedAnnouncementId?:string;
+  onMarkerClick?:(r:Report)=>void;
+  onAnnouncementClick?:(a:MapAnnouncement)=>void;
+  onMapClick?:(lat:number,lng:number)=>void;
+  selectedLocation?:[number,number]|null;
+  /** When true, map will fly to `center` whenever it changes (used in CreateReportPage) */
+  followCenter?:boolean;
+  /** When true, automatically fly to user's GPS location on first load (used on HomePage) */
+  autoLocate?:boolean;
+  onAutoLocated?:(lat:number,lng:number)=>void;
+}
+
+export default function MapView({
+  reports,announcements=[],center=[41.2995,69.2401],zoom=12,height='100%',
+  selectedId,selectedAnnouncementId,onMarkerClick,onAnnouncementClick,onMapClick,
+  selectedLocation=null,followCenter=false,autoLocate=false,onAutoLocated,
+}:Props){
+  const selectedIcon=L.divIcon({className:'',html:'<div style="width:20px;height:20px;border-radius:50%;background:#2563EB;border:4px solid white;box-shadow:0 0 0 5px rgba(37,99,235,.25),0 3px 12px rgba(0,0,0,.3)"></div>',iconSize:[20,20],iconAnchor:[10,10]});
+
+  return(
+    <div className="relative h-full w-full overflow-hidden" style={{height}}>
+      <MapContainer center={center} zoom={zoom} style={{height:'100%',width:'100%'}} zoomControl className="z-0">
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'/>
+        <SetViewOnChange center={center} zoom={zoom} followCenter={followCenter}/>
+        {autoLocate&&<AutoLocate onLocation={onAutoLocated}/>}
+        <UserLocationControl onLocation={onMapClick}/>
+        {onMapClick&&<MapClickHandler onMapClick={onMapClick}/>}
+        {selectedLocation&&<Marker position={selectedLocation} icon={selectedIcon} interactive={false}/>}
+        {reports.map(r=>(
+          <Marker key={r.id} position={[r.location.lat,r.location.lng]}
+            icon={createMarkerIcon(r.status,r.votes,r.id===selectedId)}
+            eventHandlers={{click:()=>onMarkerClick?.(r)}}/>
+        ))}
+        {announcements.map(a=>{
+          const c=ANNOUNCEMENT_TYPE_CONFIG[a.type]||ANNOUNCEMENT_TYPE_CONFIG.other;
+          const sel=a.id===selectedAnnouncementId;
+          return(
+            <div key={a.id}>
+              {a.route.length>=2&&<Polyline positions={a.route} pathOptions={{color:c.lineColor,weight:sel?8:5,opacity:a.status==='expired'?.3:.85}} eventHandlers={{click:()=>onAnnouncementClick?.(a)}}/>}
+              {a.alternativeRoute&&a.alternativeRoute.length>=2&&<Polyline positions={a.alternativeRoute} pathOptions={{color:'#16A34A',weight:4,dashArray:'12,5'}}/>}
+              {a.route.length>=1&&<Marker position={a.route[Math.floor(a.route.length/2)]} icon={createAnnouncementIcon(a.type)} eventHandlers={{click:()=>onAnnouncementClick?.(a)}}/>}
+            </div>
+          );
+        })}
+      </MapContainer>
+    </div>
+  );
+}
